@@ -20,7 +20,8 @@ from typing import Iterable
 import numpy as np
 from numpy import typing as npt
 
-from .helpers import crypt_parts, finish_message, encrypt_loop_uint8, encrypt_loop_uint64
+from .helpers import finish_message, encrypt_loop_uint8, encrypt_loop_uint64, decrypt_loop_uint8, decrypt_loop_uint64
+from .helpers import cut_message, split_message
 
 input_type = str | bytes | Iterable[int] | npt.NDArray[np.uint8]
 
@@ -36,7 +37,7 @@ class NALEnc:
         message = self.__encode_value(msg)
         message = finish_message(message, self.__passwd)
 
-        parts = self.__split_message(message)
+        parts = split_message(message)
         parts = encrypt_loop_uint8(parts, self.__prepared_passwds) if len(parts[0]) < 65536 else encrypt_loop_uint64(parts, self.__prepared_passwds)
 
         res = np.ravel(parts)
@@ -46,19 +47,15 @@ class NALEnc:
     def decrypt(self, msg: input_type) -> list[int]:
         message = self.__encode_value(msg)
 
-        parts = self.__split_message(message)
+        parts = split_message(message)
 
         assert parts.ndim == 2
 
-        for i in range(256):
-            parts = np.vstack((parts[1:], parts[:1]))
-            parts = crypt_parts(parts, i, self.__prepared_passwds, True)
-            for k in range(3):
-                parts[2 - k] = parts[2 - k] ^ parts[3 - k]
+        parts = decrypt_loop_uint8(parts, self.__prepared_passwds) if len(parts[0]) < 65536 else decrypt_loop_uint64(parts, self.__prepared_passwds)
 
         res = np.ravel(parts)
 
-        return self.__cut_message(res).tolist() # type: ignore
+        return cut_message(res).tolist() # type: ignore
 
     def __prepare_passwds(self) -> None:
         idx_array = np.arange(512)
@@ -73,10 +70,6 @@ class NALEnc:
                                                       self.__prepared_passwds[i - 1])
 
     @staticmethod
-    def __split_message(msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-        return np.reshape(msg, (4, len(msg) // 4))
-
-    @staticmethod
     def __encode_value(value: input_type) -> npt.NDArray[np.uint8]:
         try:
             if isinstance(value, str):
@@ -85,11 +78,6 @@ class NALEnc:
                 return np.fromiter(value, np.uint8)
         except (ValueError, TypeError):
             raise TypeError("Argument must be str | bytes | Iterable[int] | NDArray[uint8]")
-
-    @staticmethod
-    def __cut_message(msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-        additional_len = (int(msg[0]) << 8) | int(msg[1])
-        return msg[2:len(msg) - int(additional_len)]
 
 
 __all__ = ["NALEnc"]

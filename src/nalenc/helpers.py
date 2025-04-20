@@ -64,15 +64,6 @@ def _crypt_parts64(parts: npt.NDArray[np.uint8], i: int,
         _crypt_part64_inplace(tmp[idx], parts[idx], i, idx, prepared_passwds, decrypt)
     return tmp
 
-
-# @njit(cache=True)
-def crypt_parts(parts: npt.NDArray[np.uint8], i: int,
-                prepared_passwds: npt.NDArray[np.uint8], decrypt: bool = False) -> npt.NDArray[np.uint8]:
-    if len(parts[0]) < 65536:
-        return _crypt_parts8(parts, i, prepared_passwds, decrypt)
-    else:
-        return _crypt_parts64(parts, i, prepared_passwds, decrypt)
-
 @njit(cache=True)
 def finish_message(msg: npt.NDArray[np.uint8], passwd: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
     additional_len = (2048 - (len(msg) + 2) % 2048) % 2048
@@ -103,10 +94,41 @@ def encrypt_loop_uint8(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArr
     return parts
 
 
-@njit(cache=True)
+@njit("uint8[:,:](uint8[:,:],uint8[:,:])")
 def encrypt_loop_uint64(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
     for i in range(256):
         parts[:3] = parts[:3] ^ parts[1:4]
         parts = _crypt_parts64(parts, i, prepared_passwds)
         parts = np.vstack((parts[-1:], parts[:-1]))
     return parts
+
+
+@njit(cache=True)
+def decrypt_loop_uint8(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    for i in range(256):
+        parts = np.vstack((parts[1:], parts[:1]))
+        parts = _crypt_parts8(parts, i, prepared_passwds, True)
+        for k in range(3):
+            parts[2 - k] = parts[2 - k] ^ parts[3 - k]
+    return parts
+
+
+@njit(cache=True)
+def decrypt_loop_uint64(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    for i in range(256):
+        parts = np.vstack((parts[1:], parts[:1]))
+        parts = _crypt_parts64(parts, i, prepared_passwds, True)
+        for k in range(3):
+            parts[2 - k] = parts[2 - k] ^ parts[3 - k]
+    return parts
+
+
+@njit(cache=True)
+def cut_message(msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    additional_len = (int(msg[0]) << 8) | int(msg[1])
+    return msg[2:len(msg) - int(additional_len)]
+
+
+@njit(cache=True)
+def split_message(msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    return np.reshape(msg, (4, len(msg) // 4))
