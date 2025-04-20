@@ -20,7 +20,7 @@ from typing import Iterable
 import numpy as np
 from numpy import typing as npt
 
-from .helpers import crypt_parts
+from .helpers import crypt_parts, finish_message, encrypt_loop_uint8, encrypt_loop_uint64
 
 input_type = str | bytes | Iterable[int] | npt.NDArray[np.uint8]
 
@@ -34,16 +34,10 @@ class NALEnc:
 
     def encrypt(self, msg: input_type) -> list[int]:
         message = self.__encode_value(msg)
-        message = self.__finish_message(message)
+        message = finish_message(message, self.__passwd)
 
         parts = self.__split_message(message)
-
-        for i in range(256):
-            parts[:3] = parts[:3] ^ parts[1:4]
-            # parts = np.array([crypt_part(part, i, idx, self.__prepared_passwds)  # type: ignore
-            #                   for idx, part in enumerate(parts)], np.uint8)
-            parts = crypt_parts(parts, i, self.__prepared_passwds)
-            parts = np.vstack((parts[-1:], parts[:-1]))
+        parts = encrypt_loop_uint8(parts, self.__prepared_passwds) if len(parts[0]) < 65536 else encrypt_loop_uint64(parts, self.__prepared_passwds)
 
         res = np.ravel(parts)
 
@@ -58,8 +52,6 @@ class NALEnc:
 
         for i in range(256):
             parts = np.vstack((parts[1:], parts[:1]))
-            # parts = np.array([crypt_part(part, i, idx, self.__prepared_passwds, True)  # type: ignore
-            #                   for idx, part in enumerate(parts)], np.uint8)
             parts = crypt_parts(parts, i, self.__prepared_passwds, True)
             for k in range(3):
                 parts[2 - k] = parts[2 - k] ^ parts[3 - k]
@@ -79,25 +71,6 @@ class NALEnc:
             xor_value = self.__prepared_passwds[i - 1][i]
             self.__prepared_passwds[i + 1] = np.where(idx_array != i, self.__prepared_passwds[i - 1] ^ xor_value,
                                                       self.__prepared_passwds[i - 1])
-
-    def __finish_message(self, msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-        additional_len = (2048 - (len(msg) + 2) % 2048) % 2048
-        if additional_len != 2046 or len(msg) % 2048 == 0:
-            res = np.empty(len(msg) + additional_len + 2, np.uint8)
-            res[2:len(msg) + 2] = msg
-            l1, l2 = additional_len >> 8, additional_len & 0xFF
-            current_len = len(msg)
-            for i in range(additional_len):
-                k = int(self.__passwd[i % len(self.__passwd)])
-                res[i + 2 + len(msg)] = np.bitwise_xor(res[(k % current_len) + 2], res[((k + 1) % current_len) + 2])
-                current_len += 1
-            res[0] = l1
-            res[1] = l2
-        else:
-            res = np.empty(len(msg) + 2, np.uint8)
-            res[2:len(msg) + 2] = msg
-            res[:2] = np.zeros(2, np.uint8)
-        return res
 
     @staticmethod
     def __split_message(msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:

@@ -3,7 +3,7 @@ from numba import njit, prange
 from numpy import typing as npt
 
 
-@njit
+@njit(cache=True)
 def _crypt_part8(dest: npt.NDArray[np.uint8], part: npt.NDArray[np.uint8],
                 i: int, part_num: int, prepared_passwds: npt.NDArray[np.uint8],
                 decrypt: bool = False) -> None:
@@ -17,7 +17,7 @@ def _crypt_part8(dest: npt.NDArray[np.uint8], part: npt.NDArray[np.uint8],
             dest[block * 512 + j] = part[block * 512 + j] ^ used_prepared_passwd[(j - shift) % 512]
 
 
-@njit
+@njit(cache=True)
 def _crypt_parts8(parts: npt.NDArray[np.uint8], i: int,
                  prepared_passwds: npt.NDArray[np.uint8], decrypt: bool = False) -> npt.NDArray[np.uint8]:
     res = np.empty_like(parts)
@@ -25,7 +25,7 @@ def _crypt_parts8(parts: npt.NDArray[np.uint8], i: int,
         _crypt_part8(res[idx], parts[idx], i, idx, prepared_passwds, decrypt)
     return res
 
-@njit
+@njit(cache=True)
 def _crypt_block64_inplace(dest: npt.NDArray[np.uint64], src: npt.NDArray[np.uint64],
                            used_prepared_passwd: npt.NDArray[np.uint64],
                            shift: int) -> None:
@@ -34,7 +34,7 @@ def _crypt_block64_inplace(dest: npt.NDArray[np.uint64], src: npt.NDArray[np.uin
         idx = (i - shift) % 64
         dest[i] = src[i] ^ used_prepared_passwd[idx]
 
-@njit
+@njit(cache=True)
 def _crypt_part64_inplace(dest: npt.NDArray[np.uint8], src: npt.NDArray[np.uint8],
                           i: int, part_num: int, prepared_passwds: npt.NDArray[np.uint8],
                           decrypt: bool = False) -> None:
@@ -56,7 +56,7 @@ def _crypt_part64_inplace(dest: npt.NDArray[np.uint8], src: npt.NDArray[np.uint8
                                used_prepared_passwd,
                                shift)
 
-@njit(parallel=True)
+@njit(parallel=True, cache=True)
 def _crypt_parts64(parts: npt.NDArray[np.uint8], i: int,
                   prepared_passwds: npt.NDArray[np.uint8], decrypt: bool = False) -> npt.NDArray[np.uint8]:
     tmp = np.empty_like(parts)
@@ -64,9 +64,49 @@ def _crypt_parts64(parts: npt.NDArray[np.uint8], i: int,
         _crypt_part64_inplace(tmp[idx], parts[idx], i, idx, prepared_passwds, decrypt)
     return tmp
 
+
+# @njit(cache=True)
 def crypt_parts(parts: npt.NDArray[np.uint8], i: int,
                 prepared_passwds: npt.NDArray[np.uint8], decrypt: bool = False) -> npt.NDArray[np.uint8]:
     if len(parts[0]) < 65536:
         return _crypt_parts8(parts, i, prepared_passwds, decrypt)
     else:
         return _crypt_parts64(parts, i, prepared_passwds, decrypt)
+
+@njit(cache=True)
+def finish_message(msg: npt.NDArray[np.uint8], passwd: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    additional_len = (2048 - (len(msg) + 2) % 2048) % 2048
+    if additional_len != 2046 or len(msg) % 2048 == 0:
+        res = np.empty(len(msg) + additional_len + 2, np.uint8)
+        res[2:len(msg) + 2] = msg
+        l1, l2 = additional_len >> 8, additional_len & 0xFF
+        current_len = len(msg)
+        for i in range(additional_len):
+            k = int(passwd[i % len(passwd)])
+            res[i + 2 + len(msg)] = np.bitwise_xor(res[(k % current_len) + 2], res[((k + 1) % current_len) + 2])
+            current_len += 1
+        res[0] = l1
+        res[1] = l2
+    else:
+        res = np.empty(len(msg) + 2, np.uint8)
+        res[2:len(msg) + 2] = msg
+        res[:2] = np.zeros(2, np.uint8)
+    return res
+
+
+@njit(cache=True)
+def encrypt_loop_uint8(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    for i in range(256):
+        parts[:3] = parts[:3] ^ parts[1:4]
+        parts = _crypt_parts8(parts, i, prepared_passwds)
+        parts = np.vstack((parts[-1:], parts[:-1]))
+    return parts
+
+
+@njit(cache=True)
+def encrypt_loop_uint64(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    for i in range(256):
+        parts[:3] = parts[:3] ^ parts[1:4]
+        parts = _crypt_parts64(parts, i, prepared_passwds)
+        parts = np.vstack((parts[-1:], parts[:-1]))
+    return parts
