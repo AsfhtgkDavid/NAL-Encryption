@@ -94,7 +94,7 @@ def encrypt_loop_uint8(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArr
     return parts
 
 
-@njit("uint8[:,:](uint8[:,:],uint8[:,:])")
+# @njit("uint8[:,:](uint8[:,:],uint8[:,:])", cache=True)
 def encrypt_loop_uint64(parts: npt.NDArray[np.uint8], prepared_passwds: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
     for i in range(256):
         parts[:3] = parts[:3] ^ parts[1:4]
