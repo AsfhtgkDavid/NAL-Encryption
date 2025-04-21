@@ -20,7 +20,8 @@ from typing import Iterable
 import numpy as np
 from numpy import typing as npt
 
-from .helpers import crypt_parts
+from .helpers import finish_message, encrypt_loop_uint8, encrypt_loop_uint64, decrypt_loop_uint8, decrypt_loop_uint64
+from .helpers import cut_message, split_message
 
 input_type = str | bytes | Iterable[int] | npt.NDArray[np.uint8]
 
@@ -34,16 +35,10 @@ class NALEnc:
 
     def encrypt(self, msg: input_type) -> list[int]:
         message = self.__encode_value(msg)
-        message = self.__finish_message(message)
+        message = finish_message(message, self.__passwd)
 
-        parts = self.__split_message(message)
-
-        for i in range(256):
-            parts[:3] = parts[:3] ^ parts[1:4]
-            # parts = np.array([crypt_part(part, i, idx, self.__prepared_passwds)  # type: ignore
-            #                   for idx, part in enumerate(parts)], np.uint8)
-            parts = crypt_parts(parts, i, self.__prepared_passwds)
-            parts = np.vstack((parts[-1:], parts[:-1]))
+        parts = split_message(message)
+        parts = encrypt_loop_uint8(parts, self.__prepared_passwds) if len(parts[0]) < 65536 else encrypt_loop_uint64(parts, self.__prepared_passwds)
 
         res = np.ravel(parts)
 
@@ -52,21 +47,15 @@ class NALEnc:
     def decrypt(self, msg: input_type) -> list[int]:
         message = self.__encode_value(msg)
 
-        parts = self.__split_message(message)
+        parts = split_message(message)
 
         assert parts.ndim == 2
 
-        for i in range(256):
-            parts = np.vstack((parts[1:], parts[:1]))
-            # parts = np.array([crypt_part(part, i, idx, self.__prepared_passwds, True)  # type: ignore
-            #                   for idx, part in enumerate(parts)], np.uint8)
-            parts = crypt_parts(parts, i, self.__prepared_passwds, True)
-            for k in range(3):
-                parts[2 - k] = parts[2 - k] ^ parts[3 - k]
+        parts = decrypt_loop_uint8(parts, self.__prepared_passwds) if len(parts[0]) < 65536 else decrypt_loop_uint64(parts, self.__prepared_passwds)
 
         res = np.ravel(parts)
 
-        return self.__cut_message(res).tolist() # type: ignore
+        return cut_message(res).tolist() # type: ignore
 
     def __prepare_passwds(self) -> None:
         idx_array = np.arange(512)
@@ -80,29 +69,6 @@ class NALEnc:
             self.__prepared_passwds[i + 1] = np.where(idx_array != i, self.__prepared_passwds[i - 1] ^ xor_value,
                                                       self.__prepared_passwds[i - 1])
 
-    def __finish_message(self, msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-        additional_len = (2048 - (len(msg) + 2) % 2048) % 2048
-        if additional_len != 2046 or len(msg) % 2048 == 0:
-            res = np.empty(len(msg) + additional_len + 2, np.uint8)
-            res[2:len(msg) + 2] = msg
-            l1, l2 = additional_len >> 8, additional_len & 0xFF
-            current_len = len(msg)
-            for i in range(additional_len):
-                k = int(self.__passwd[i % len(self.__passwd)])
-                res[i + 2 + len(msg)] = np.bitwise_xor(res[(k % current_len) + 2], res[((k + 1) % current_len) + 2])
-                current_len += 1
-            res[0] = l1
-            res[1] = l2
-        else:
-            res = np.empty(len(msg) + 2, np.uint8)
-            res[2:len(msg) + 2] = msg
-            res[:2] = np.zeros(2, np.uint8)
-        return res
-
-    @staticmethod
-    def __split_message(msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-        return np.reshape(msg, (4, len(msg) // 4))
-
     @staticmethod
     def __encode_value(value: input_type) -> npt.NDArray[np.uint8]:
         try:
@@ -112,11 +78,6 @@ class NALEnc:
                 return np.fromiter(value, np.uint8)
         except (ValueError, TypeError):
             raise TypeError("Argument must be str | bytes | Iterable[int] | NDArray[uint8]")
-
-    @staticmethod
-    def __cut_message(msg: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
-        additional_len = (int(msg[0]) << 8) | int(msg[1])
-        return msg[2:len(msg) - int(additional_len)]
 
 
 __all__ = ["NALEnc"]
