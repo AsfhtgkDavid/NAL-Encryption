@@ -20,8 +20,8 @@ from typing import Iterable
 import numpy as np
 from numpy import typing as npt
 
-from .helpers import finish_message, encrypt_loop_uint8, encrypt_loop_uint64, decrypt_loop_uint8, decrypt_loop_uint64
-from .helpers import cut_message, split_message
+from helpers import finish_message, encrypt_loop_uint8, encrypt_loop_uint64, decrypt_loop_uint8, decrypt_loop_uint64
+from helpers import cut_message, split_message
 
 input_type = str | bytes | Iterable[int] | npt.NDArray[np.uint8]
 

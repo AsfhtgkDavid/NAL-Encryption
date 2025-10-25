@@ -1,21 +1,23 @@
-import sys
-import os
-from pathlib import Path
-import binascii
 import base64
-import time
+import os
 import random
 import shutil
-import math
+import sys
+import time
+from pathlib import Path
 
+from PyQt6.QtCore import (Qt, QThread, pyqtSignal, QPropertyAnimation,
+                          QEasingCurve, QPoint, QRectF, QTranslator,
+                          QCoreApplication, QEvent,
+                          QTimer, pyqtProperty, QEventLoop)
+from PyQt6.QtGui import QIcon, QPainter, QColor, QFont, QPen, QBrush
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QFileDialog, QGroupBox, QTextEdit, QMessageBox, QStatusBar, QProgressBar, QTabWidget,
+    QLabel, QLineEdit, QPushButton, QFileDialog, QGroupBox, QTextEdit,
+    QMessageBox, QStatusBar, QProgressBar, QTabWidget,
     QCheckBox, QComboBox, QToolBar
 )
-from PyQt6.QtCore import (Qt, QThread, pyqtSignal, QPropertyAnimation, QEasingCurve, QPoint, QSize, QRectF, QTranslator, QCoreApplication, QEvent,
-                          QTimer, QRect, pyqtProperty, QEventLoop)
-from PyQt6.QtGui import QIcon, QPainter, QColor, QPainterPath, QFont, QPen, QBrush
+
 
 def get_app_data_path():
     return Path(os.getenv('APPDATA', Path.home() / 'AppData' / 'Roaming')) / 'NalencGUI'

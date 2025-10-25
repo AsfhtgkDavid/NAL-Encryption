@@ -1,6 +1,6 @@
 import unittest
 import random
-from src import nalenc
+import nalenc
 
 
 class MyTestCase(unittest.TestCase):
