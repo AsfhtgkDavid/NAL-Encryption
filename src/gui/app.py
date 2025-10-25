@@ -6,17 +6,21 @@ import sys
 import time
 from pathlib import Path
 
-from PyQt6.QtCore import (Qt, QThread, pyqtSignal, QPropertyAnimation,
-                          QEasingCurve, QPoint, QRectF, QTranslator,
-                          QCoreApplication, QEvent,
-                          QTimer, pyqtProperty, QEventLoop)
-from PyQt6.QtGui import QIcon, QPainter, QColor, QFont, QPen, QBrush
-from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QFileDialog, QGroupBox, QTextEdit,
-    QMessageBox, QStatusBar, QProgressBar, QTabWidget,
-    QCheckBox, QComboBox, QToolBar
-)
+try:
+    from PyQt6.QtCore import (Qt, QThread, pyqtSignal, QPropertyAnimation,
+                              QEasingCurve, QPoint, QRectF, QTranslator,
+                              QCoreApplication, QEvent,
+                              QTimer, pyqtProperty, QEventLoop)
+    from PyQt6.QtGui import QIcon, QPainter, QColor, QFont, QPen, QBrush
+    from PyQt6.QtWidgets import (
+        QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+        QLabel, QLineEdit, QPushButton, QFileDialog, QGroupBox, QTextEdit,
+        QMessageBox, QStatusBar, QProgressBar, QTabWidget,
+        QCheckBox, QComboBox, QToolBar
+    )
+except ImportError:
+    print("GUI are available only with gui extra. Please install nalenc with 'pip install nalenc[gui]'")
+    exit(1)
 
 
 def get_app_data_path():
