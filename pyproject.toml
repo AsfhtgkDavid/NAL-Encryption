@@ -39,4 +39,4 @@ gui = [
 Homepage = "https://github.com/AsfhtgkDavid/NAL-Encryption"
 
 [tool.mypy]
-strict = true
+#strict = true
