@@ -21,8 +21,8 @@ jobs:
       - name: Run Tests
         run: |
           pip install -r requirements.txt
-          cd tests
-          python -m unittest nalenc.py
+          pip install -e .
+          python -m unittest discover -s tests
 
   mypy-tests:
     runs-on: ubuntu-latest
@@ -43,4 +43,5 @@ jobs:
         run: |
           pip install mypy
           pip install -r requirements.txt
-          python -m mypy src/nalenc/*
+          pip install -e .
+          python -m mypy src/*
