@@ -47,16 +47,16 @@ except ImportError:
     exit(1)
 
 # Use refactored config, utils, views and workers
-from gui.config.settings import (
+from .config.settings import (
     APP_CONTEXT,
     EXPECTED_KEY_LEN,
     MIN_SPLASH_TIME,
 )
-from gui.config.paths import PathManager
-from gui.utils.resource_manager import ResourceManager
-from gui.views.splash import SplashScreen
-from gui.views.main_tab import MainTab
-from gui.views.key_tab import KeyManagementTab
+from .config.paths import PathManager
+from .utils.resource_manager import ResourceManager
+from .views.splash import SplashScreen
+from .views.main_tab import MainTab
+from .views.key_tab import KeyManagementTab
 
 path_manager = PathManager()
 resource_manager = ResourceManager(path_manager)
