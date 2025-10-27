@@ -21,7 +21,7 @@ jobs:
       - name: Run Tests
         run: |
           pip install -r requirements.txt
-          pip install -e .
+          pip install -e .[gui]
           python -m unittest discover -s tests
 
   mypy-tests:
@@ -43,5 +43,5 @@ jobs:
         run: |
           pip install mypy
           pip install -r requirements.txt
-          pip install -e .
+          pip install -e .[gui]
           python -m mypy src/*
