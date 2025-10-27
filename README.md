@@ -8,7 +8,7 @@
 
 - **Flexible Input:** Encrypt and decrypt strings, binary data, or NumPy arrays.
 - **Password Support:** Accepts passwords as strings, bytes, lists of integers (0-255), or NumPy arrays.
-- **Optimized for Performance:** Best suited for messages of size `2046n`, where `n ∈ N`.
+- **Optimized for Performance:** Best suited for messages of size `2048n - 2`, where `n ∈ N`.
 - **Powered by NumPy:** Leverages NumPy for efficient operations.
 - **Command-Line Interface:** Includes a `nalenc` CLI tool for easy file encryption/decryption and key generation directly from your terminal.
 
@@ -21,6 +21,36 @@ Install the library via pip:
 ```bash
 pip install nalenc
 ```
+
+---
+
+## 🖥️ Graphical User Interface (GUI)
+
+NALEnc includes an optional graphical user interface for users who prefer a visual tool for encryption and decryption.
+
+### Installing GUI Dependencies
+
+To use the GUI, install NALEnc with the GUI extras:
+
+```bash
+pip install nalenc[gui]
+```
+
+This will install the required PyQt6 dependency.
+
+### Running the GUI
+
+After installation, launch the GUI with:
+
+```bash
+python -m nalenc.gui
+```
+
+The GUI provides:
+- **Key Generation:** Create new encryption keys with a visual interface
+- **File Encryption:** Select files to encrypt with drag-and-drop support
+- **File Decryption:** Decrypt encrypted files easily
+- **Key Management:** Load and save encryption keys in both binary and ASCII formats
 
 ---
 

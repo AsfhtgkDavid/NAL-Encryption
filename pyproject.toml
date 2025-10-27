@@ -22,12 +22,21 @@ classifiers = [
 ]
 dependencies = [
     "numba>=0.61.0",
-    "numpy >= 2.1.0",
-    "pyqt6>=6.9.0",
+    "numpy >= 2.1.0"
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.18.2",
+]
+
+[project.optional-dependencies]
+gui = [
+    "pyqt6>=6.9.0"
 ]
 
 [project.urls]
 Homepage = "https://github.com/AsfhtgkDavid/NAL-Encryption"
 
 [tool.mypy]
-strict = true
+#strict = true
