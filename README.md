@@ -1,5 +1,7 @@
 # NALEnc - Python Encryption Library
 
+**⚠️ Educational purpose only. DO NOT use for production security.**
+
 **NALEnc** is a lightweight Python encryption library designed for securely encrypting and decrypting text and binary data. With an intuitive interface and robust functionality, it is ideal for developers seeking a straightforward yet effective encryption solution.
 
 ---
